@@ -1,0 +1,6 @@
+Total data sent:     25930.4 MiB (27190041484 bytes)
+Total data received: 26121.4 MiB (27390299676 bytes)
+Bandwidth per channel: 72.772⇅ Mbps (9096.4 kBps)
+Aggregate bandwidth: 7303.850↓, 7250.450↑ Mbps
+Packet rate estimate: 658941.6↓, 650672.1↑ (10↓, 17↑ TCP MSS/op)
+Test duration: 30.0009 s.
