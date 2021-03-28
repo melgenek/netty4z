@@ -1,7 +1,5 @@
 package netty4z.exceptions
 
-import netty4z.Logger
-
 import java.io.IOException
 import java.net.SocketException
 
@@ -12,7 +10,7 @@ object ConnectionReset {
     e match {
       case err: IOException if err.getMessage != null && err.getMessage.contains("Broken pipe") => true
       case err: IOException if err.getMessage != null && err.getMessage.contains("Connection reset by peer") => true
-      case err: SocketException if err.getMessage != null && err.getMessage.contains("Broken pipe") => true
+      case err: SocketException if err.getMessage != null && err.getMessage.contains("Connection reset") => true
       case _ => false
     }
   }

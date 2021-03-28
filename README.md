@@ -3,7 +3,7 @@ exec tcpkali \
 --connect-rate=200 \
 -c 200 \
 -T 30s \
-localhost:8007 > z5.txt
+localhost:8007 > z6.txt
 
 
 exec tcpkali \

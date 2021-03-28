@@ -1,14 +1,9 @@
 import io.netty.util.concurrent.Future
-import zio.internal.tracing.TracingConfig
-import zio.{Task, UIO, ZIO, ZQueue}
+import zio.{Queue, Task, UIO, ZIO}
 
 package object netty4z {
 
-  val runtime: zio.Runtime[zio.ZEnv] = zio.Runtime.default.withFatal{
-    e =>
-      println(s"THIS IS FATAL: $e")
-      false
-  }
+  val zRuntime: zio.Runtime[zio.ZEnv] = zio.Runtime.default
 
   implicit class NettyFutureToZIO[A](fTask: Task[Future[A]]) {
     def toZIO: Task[A] = {
@@ -18,24 +13,41 @@ package object netty4z {
           else {
             f.addListener { (res: Future[A]) => callback(complete(res)) }
             Left(UIO {
-              Logger.debug("Cancelling")
               if (f.isCancellable) f.cancel(true)
             })
           }
         }
       }
     }
-  }
 
-  private def complete[A](res: Future[A]): Task[A] = {
-    if (res.isSuccess) ZIO.succeed(res.getNow)
-    else ZIO.fail {
-      val cause = res.cause()
-      Logger.logConnectionReset(cause)
-      cause
+    private def complete(res: Future[A]): Task[A] = {
+      if (res.isSuccess) ZIO.succeed(res.getNow)
+      else ZIO.fail {
+        val cause = res.cause()
+        Logger.logConnectionReset(cause)
+        cause
+      }
     }
   }
 
-  type TaskQueue[A] = ZQueue[Any, Any, Throwable, Throwable, A, A]
+  implicit class ZQueueOps[A](val q: Queue[A]) extends AnyVal {
+    def offerIfNotShutdown(a: A): UIO[Boolean] = {
+      q.offer(a).catchAllCause { c =>
+        q.isShutdown.flatMap { down =>
+          if (down && c.interrupted) UIO(false)
+          else ZIO.halt(c)
+        }
+      }
+    }
+
+    def takeIfNotShutdown(default: => A): UIO[A] = {
+      q.take.catchAllCause { c =>
+        q.isShutdown.flatMap { down =>
+          if (down && c.interrupted) UIO(default)
+          else ZIO.halt(c)
+        }
+      }
+    }
+  }
 
 }

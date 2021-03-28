@@ -5,27 +5,14 @@ import io.netty.channel.socket.SocketChannel
 import netty4z.BufferUtils.{bufferToChunk, chunkToBuffer}
 import netty4z.ZioChannelHandler.ChannelEnd
 import zio.stream.ZStream
-import zio.{Chunk, Task, UIO, URIO, ZIO, ZRef}
+import zio.{Queue, Task, UIO, URIO, ZIO}
 
-import scala.util.Try
+class ZChannel(ch: SocketChannel, in: Queue[AnyRef]) {
 
-object ZChannel {
-
-}
-
-class ZChannel(ch: SocketChannel, in: TaskQueue[AnyRef], out: TaskQueue[ByteBuf]) {
-
-  val stream: ZStream[Any, Throwable, Byte] = ZStream.bracket {
+  def stream: ZStream[Any, Throwable, Byte] = ZStream.bracket {
     for {
-      _ <- Task {
-        if (ch.isActive) ch.read()
-      }
-      buf <- in.take.catchAllCause { c =>
-        in.isShutdown.flatMap { down =>
-          if (down && c.interrupted) ZIO.succeed(ChannelEnd)
-          else ZIO.halt(c)
-        }
-      }
+      _ <- readIfActive
+      buf <- in.takeIfNotShutdown(ChannelEnd)
     } yield buf
   } {
     case b: ByteBuf => URIO(b.release())
@@ -37,25 +24,22 @@ class ZChannel(ch: SocketChannel, in: TaskQueue[AnyRef], out: TaskQueue[ByteBuf]
       case e: Throwable => ZIO.fail(e)
     }
     .flattenChunks
-      .ensuringFirst(
-  //      printQueue *>
-        in.shutdown)
+    .ensuring(in.shutdown)
 
-  def writeChunk(chunk: Chunk[Byte]): Task[Unit] = {
-    out.offer(chunkToBuffer(chunk)) *> Task {
-      if (ch.isActive) ch.flush()
-    }
+  def write(in: ZStream[Any, Throwable, Byte]): ZIO[Any, Throwable, Unit] = {
+    for {
+      (q, input) <- ZQueueChunkedInput.make()
+      _ <- ZIO.collectAllPar_(List(
+        in
+          .foreachChunk(chunk => q.offerIfNotShutdown(chunkToBuffer(chunk)) *> flushIfActive)
+          .ensuring(q.offerIfNotShutdown(ChannelEnd))
+          .onError(e => q.offerIfNotShutdown(e.squash)),
+        Task(ch.writeAndFlush(input))
+      ))
+    } yield ()
   }
 
-  def write(in: ZStream[Any, Throwable, Byte]): ZStream[Any, Throwable, Unit] = {
-    in.mapChunks(Chunk.single)
-      .mapM(chunk => writeChunk(chunk))
-      .onError(c => UIO(s"ERROR ! $c"))
-    //      .drain
-    //      .ensuringFirst(out.shutdown)
-  }
+  private val readIfActive: Task[Any] = Task(if (ch.isActive) ch.read())
 
-  def printQueue: UIO[Unit] = {
-    in.size.map(i => println(i))
-  }
+  private val flushIfActive: Task[Any] = Task(if (ch.isActive) ch.flush())
 }

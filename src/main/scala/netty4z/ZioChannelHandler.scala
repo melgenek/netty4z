@@ -1,20 +1,17 @@
 package netty4z
 
-import io.netty.buffer.ByteBuf
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter}
+import io.netty.util.ReferenceCountUtil
 import netty4z.ZioChannelHandler.ChannelEnd
 import netty4z.exceptions.ConnectionReset
-import zio.ZQueue
-
-import scala.util.Try
+import zio.{Queue, UIO, ZQueue}
 
 object ZioChannelHandler {
-  def make(ch: SocketChannel) = {
+  def make(ch: SocketChannel): UIO[(ZioChannelHandler, ZChannel)] = {
     for {
       in <- ZQueue.unbounded[AnyRef]
-      out <- ZQueue.unbounded[ByteBuf]
-    } yield (new ZioChannelHandler(in, out), new ZChannel(ch, in, out))
+    } yield (new ZioChannelHandler(in), new ZChannel(ch, in))
   }
 
   case object ChannelEnd
@@ -22,28 +19,24 @@ object ZioChannelHandler {
   type ChannelEnd = ChannelEnd.type
 }
 
-class ZioChannelHandler(in: TaskQueue[AnyRef], out: TaskQueue[ByteBuf]) extends ChannelInboundHandlerAdapter {
-
-  override def channelActive(ctx: ChannelHandlerContext): Unit = {
-    ctx.write(new ZQueueChunkedInput(out))
-  }
-
+class ZioChannelHandler(in: Queue[AnyRef]) extends ChannelInboundHandlerAdapter {
   override def channelInactive(ctx: ChannelHandlerContext): Unit = {
-    runtime.unsafeRun(in.offer(ChannelEnd))
-    ctx.fireChannelInactive()
+    zRuntime.unsafeRun(in.offerIfNotShutdown(ChannelEnd))
   }
 
-  override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = {
-    runtime.unsafeRun(in.offer(msg.asInstanceOf[ByteBuf]))
+  override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit = {
+    if (!zRuntime.unsafeRun(in.offerIfNotShutdown(msg))) {
+      ReferenceCountUtil.safeRelease(msg)
+    }
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, e: Throwable): Unit = {
     e match {
       case ConnectionReset(_) =>
-      //        Logger.debug(s"Connection reset.")
+        Logger.debug(s"Connection reset.")
       case _ =>
         Logger.error(s"Unknown error: $e")
-        runtime.unsafeRun(in.offer(e))
+        zRuntime.unsafeRun(in.offerIfNotShutdown(e))
     }
   }
 }

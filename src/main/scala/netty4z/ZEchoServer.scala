@@ -1,6 +1,5 @@
 package netty4z
 
-import zio.stream.ZStream
 import zio.{ExitCode, UIO, URIO}
 
 object ZEchoServer extends zio.App {
@@ -11,20 +10,15 @@ object ZEchoServer extends zio.App {
           s.handle { ch =>
             ch.write(ch.stream)
               .catchAll {
-                e =>
-                  //                  ZStream.fromEffect(UIO(println(s"Failed $e"))).drain ++
-                  ZStream.empty
+                e => UIO(println(s"OOPS $e"))
               }
 
-            //            ch.stream.grouped(4).mapM { chunk =>
-            //              for {
-            //                _ <- UIO(println(byteArrayToInt(chunk.toArray)))
-            //                _ <- ch.writeChunk(chunk)
-            //              } yield ()
-            //            }.catchAll {
-            //              e =>
-            //                ZStream.fromEffect(UIO(println(s"Failed $e"))).drain ++
-            //                  ZStream.empty
+            //            ch.write(
+            //              ch.stream.grouped(4)
+            //                .tap(chunk => UIO(println(byteArrayToInt(chunk.toArray))))
+            //                .flattenChunks
+            //            ).catchAll {
+            //              e => UIO(println(s"OOPS $e"))
             //            }
           }
       }

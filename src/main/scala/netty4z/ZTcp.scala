@@ -8,19 +8,18 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.logging.{LogLevel, LoggingHandler}
 import io.netty.handler.stream.ChunkedWriteHandler
 import zio.stream.ZStream
-import zio.{Cause, Queue, RIO, Task, UIO, URIO, ZIO, ZManaged, ZQueue}
+import zio.{Queue, Task, UIO, ZIO, ZManaged, ZQueue}
 
 object ZTcp {
 
-  type Handler[R, A] = ZChannel => ZStream[R, Nothing, A]
+  type Handler[R, A] = ZChannel => ZIO[R, Nothing, A]
 
   class Server(q: Queue[ZChannel]) {
-
-    def handle[R, A](handler: Handler[R, A]): ZIO[R, Nothing, Unit] =
+    def handle[R, A](handler: Handler[R, A]): ZIO[R, Nothing, Unit] = {
       ZStream.fromQueue(q)
-        .map(handler)
-        .flattenParUnbounded()
+        .mapMPar(Runtime.getRuntime.availableProcessors())(handler)
         .runDrain
+    }
   }
 
   def server(port: Int): ZManaged[Any, Throwable, Server] = {
