@@ -10,7 +10,7 @@ import scala.util.Random
 class EchoClientHandler() extends ChannelInboundHandlerAdapter {
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
-    for (i <- 0 until 100) {
+    for (i <- 0 until 10) {
       //      val b = new Array[Byte](100)
       //      Random.nextBytes(b)
       val message = Unpooled.buffer(4)
@@ -19,11 +19,14 @@ class EchoClientHandler() extends ChannelInboundHandlerAdapter {
       println(s"Sent $i")
       //      Thread.sleep(10)
     }
-//    ctx.close()
+    //    ctx.close()
   }
 
   override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = {
-    println(s"Response! ${msg.asInstanceOf[ByteBuf].readInt()}")
+    val b = msg.asInstanceOf[ByteBuf]
+    while (b.isReadable()) {
+      println(s"Response! ${b.readInt()}")
+    }
   }
 
   override def channelReadComplete(ctx: ChannelHandlerContext): Unit = {

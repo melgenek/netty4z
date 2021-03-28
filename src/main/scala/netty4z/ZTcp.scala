@@ -2,13 +2,13 @@ package netty4z
 
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelInitializer
-import io.netty.channel.kqueue.{KQueueEventLoopGroup, KQueueServerSocketChannel}
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.logging.{LogLevel, LoggingHandler}
+import io.netty.handler.stream.ChunkedWriteHandler
 import zio.stream.ZStream
-import zio.{Queue, Task, UIO, URIO, ZIO, ZManaged, ZQueue}
+import zio.{Cause, Queue, RIO, Task, UIO, URIO, ZIO, ZManaged, ZQueue}
 
 object ZTcp {
 
@@ -16,25 +16,22 @@ object ZTcp {
 
   class Server(q: Queue[ZChannel]) {
 
-    def handle[R, A](handler: Handler[R, A]): URIO[R, Unit] =
+    def handle[R, A](handler: Handler[R, A]): ZIO[R, Nothing, Unit] =
       ZStream.fromQueue(q)
         .map(handler)
         .flattenParUnbounded()
         .runDrain
-
   }
 
   def server(port: Int): ZManaged[Any, Throwable, Server] = {
     for {
-//      bossGroup <- ZIO(new NioEventLoopGroup(1)).toManaged(g => Task(g.shutdownGracefully()).toZIO.ignore)
-      bossGroup <- ZIO(new KQueueEventLoopGroup(1)).toManaged(g => Task(g.shutdownGracefully()).toZIO.ignore)
-//      workerGroup <- ZIO(new NioEventLoopGroup).toManaged(g => Task(g.shutdownGracefully()).toZIO.ignore)
-      workerGroup <- ZIO(new KQueueEventLoopGroup).toManaged(g => Task(g.shutdownGracefully()).toZIO.ignore)
+      bossGroup <- ZIO(new NioEventLoopGroup(1)).toManaged(g => Task(g.shutdownGracefully()).toZIO.ignore)
+      workerGroup <- ZIO(new NioEventLoopGroup).toManaged(g => Task(g.shutdownGracefully()).toZIO.ignore)
       channelQueue <- ZQueue.unbounded[ZChannel].toManaged(_.shutdown)
       init <- initializer(channelQueue).toManaged_
       b = new ServerBootstrap()
         .group(bossGroup, workerGroup)
-        .channel(classOf[KQueueServerSocketChannel])
+        .channel(classOf[NioServerSocketChannel])
         .handler(new LoggingHandler(LogLevel.INFO))
         .childHandler(init)
       _ <- (for {
@@ -51,8 +48,9 @@ object ZTcp {
       override def initChannel(ch: SocketChannel): Unit = {
         val p = ch.pipeline
         ch.config().setAutoRead(false)
+        p.addLast(new ChunkedWriteHandler())
 
-        r.unsafeRunAsync_(for {
+        r.unsafeRun(for {
           (h, zch) <- ZioChannelHandler.make(ch)
           _ <- ZIO(p.addLast(h))
           _ <- q.offer(zch)

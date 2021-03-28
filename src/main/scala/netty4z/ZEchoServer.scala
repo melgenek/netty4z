@@ -1,7 +1,5 @@
 package netty4z
 
-import io.netty.channel.epoll.Epoll
-import io.netty.channel.kqueue.KQueue
 import zio.stream.ZStream
 import zio.{ExitCode, UIO, URIO}
 
@@ -14,8 +12,8 @@ object ZEchoServer extends zio.App {
             ch.write(ch.stream)
               .catchAll {
                 e =>
-//                  ZStream.fromEffect(UIO(println(s"Failed $e"))).drain ++
-                    ZStream.empty
+                  //                  ZStream.fromEffect(UIO(println(s"Failed $e"))).drain ++
+                  ZStream.empty
               }
 
             //            ch.stream.grouped(4).mapM { chunk =>
@@ -23,6 +21,10 @@ object ZEchoServer extends zio.App {
             //                _ <- UIO(println(byteArrayToInt(chunk.toArray)))
             //                _ <- ch.writeChunk(chunk)
             //              } yield ()
+            //            }.catchAll {
+            //              e =>
+            //                ZStream.fromEffect(UIO(println(s"Failed $e"))).drain ++
+            //                  ZStream.empty
             //            }
           }
       }

@@ -1,10 +1,14 @@
 import io.netty.util.concurrent.Future
 import zio.internal.tracing.TracingConfig
-import zio.{Task, UIO, ZIO}
+import zio.{Task, UIO, ZIO, ZQueue}
 
 package object netty4z {
 
-  val runtime: zio.Runtime[zio.ZEnv] = zio.Runtime.default
+  val runtime: zio.Runtime[zio.ZEnv] = zio.Runtime.default.withFatal{
+    e =>
+      println(s"THIS IS FATAL: $e")
+      false
+  }
 
   implicit class NettyFutureToZIO[A](fTask: Task[Future[A]]) {
     def toZIO: Task[A] = {
@@ -31,5 +35,7 @@ package object netty4z {
       cause
     }
   }
+
+  type TaskQueue[A] = ZQueue[Any, Any, Throwable, Throwable, A, A]
 
 }
