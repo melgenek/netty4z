@@ -29,7 +29,7 @@ lazy val benchmarketing = project
   .settings(
     skip in publish := true,
     libraryDependencies ++= Seq(
-
+      "dev.zio" %% "zio-nio" % "1.0.0-RC10"
     )
   )
   .dependsOn(core)

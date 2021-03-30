@@ -20,9 +20,10 @@ class ZChannel(ch: SocketChannel, in: Queue[AnyRef]) {
   }
     .forever
     .collectWhileM {
-      case b: ByteBuf => ZIO.succeed(bufferToChunk(b))
+      case b: ByteBuf => ZIO.succeed(b)
       case e: Throwable => ZIO.fail(e)
     }
+    .map(bufferToChunk)
     .flattenChunks
     .ensuring(in.shutdown)
 

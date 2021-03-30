@@ -7,7 +7,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.{ChannelFuture, ChannelHandlerContext, ChannelInboundHandlerAdapter, ChannelInitializer}
 import io.netty.handler.logging.{LogLevel, LoggingHandler}
 
-object RawNetty {
+object RawNettyEcho {
   def main(args: Array[String]): Unit = {
     val bootstrap = new ServerBootstrap
     bootstrap.group(
@@ -18,14 +18,14 @@ object RawNetty {
       .channel(classOf[NioServerSocketChannel])
       .childHandler(new ChannelInitializer[SocketChannel] {
         def initChannel(ch: SocketChannel) = {
-          ch.config().setAutoRead(false)
+          ch.config().setAutoRead(true)
           ch.pipeline().addLast(new EchoHandler)
-          ch.parent().read()
           ()
         }
       })
 
     val cf = bootstrap.bind(8007)
+    println("Started!")
     cf.sync()
     cf.channel.read()
     cf.channel().closeFuture().sync()
@@ -33,21 +33,9 @@ object RawNetty {
   }
 
   final class EchoHandler extends ChannelInboundHandlerAdapter {
-
-    override def channelActive(ctx: ChannelHandlerContext) = {
-      ctx.channel.read()
-      ()
-    }
-
     override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef) = {
-      ctx.channel.writeAndFlush(msg).addListener { (_: ChannelFuture) =>
-        ctx.channel.read()
-        ()
-      }
-      ()
+      ctx.writeAndFlush(msg)
     }
-
-    override def exceptionCaught(ctx: ChannelHandlerContext, t: Throwable) = ()
   }
 
 }
