@@ -1,9 +1,35 @@
-name := "netty4z"
+import sbt.Keys.{libraryDependencies, name}
 
-version := "0.1"
+inThisBuild(List(
+  scalaVersion := "2.13.5",
+  version := "0.1"
+))
 
-scalaVersion := "2.13.5"
+lazy val root = project
+  .in(file("."))
+  .settings(
+    name := "netty4z",
+    skip in publish := true
+  )
+  .aggregate(core, benchmarketing)
 
-libraryDependencies += "io.netty" % "netty-all" % "4.1.60.Final"
-libraryDependencies += "dev.zio" %% "zio" % "1.0.5"
-libraryDependencies += "dev.zio" %% "zio-streams" % "1.0.5"
+lazy val core = project
+  .in(file("core"))
+  .settings(
+    name := "netty4z-core",
+    libraryDependencies ++= Seq(
+      "io.netty" % "netty-all" % "4.1.60.Final",
+      "dev.zio" %% "zio" % "1.0.5",
+      "dev.zio" %% "zio-streams" % "1.0.5"
+    )
+  )
+
+lazy val benchmarketing = project
+  .in(file("benchmarketing"))
+  .settings(
+    skip in publish := true,
+    libraryDependencies ++= Seq(
+
+    )
+  )
+  .dependsOn(core)

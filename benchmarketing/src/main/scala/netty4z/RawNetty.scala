@@ -1,37 +1,19 @@
-/*
- * Copyright 2021 Typelevel
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package netty4z
 
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.channel._
+import io.netty.channel.{ChannelFuture, ChannelHandlerContext, ChannelInboundHandlerAdapter, ChannelInitializer}
 import io.netty.handler.logging.{LogLevel, LoggingHandler}
-
-import java.net.InetSocketAddress
 
 object RawNetty {
   def main(args: Array[String]): Unit = {
-    val parent = new NioEventLoopGroup(1)
-    val child = new NioEventLoopGroup
-
     val bootstrap = new ServerBootstrap
-    bootstrap.group(parent, child)
+    bootstrap.group(
+      new NioEventLoopGroup(1),
+      new NioEventLoopGroup
+    )
       .handler(new LoggingHandler(LogLevel.INFO))
       .channel(classOf[NioServerSocketChannel])
       .childHandler(new ChannelInitializer[SocketChannel] {
@@ -58,15 +40,14 @@ object RawNetty {
     }
 
     override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef) = {
-      ctx.channel.writeAndFlush(msg) addListener { (_: ChannelFuture) =>
+      ctx.channel.writeAndFlush(msg).addListener { (_: ChannelFuture) =>
         ctx.channel.read()
-
         ()
       }
-
       ()
     }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, t: Throwable) = ()
   }
+
 }

@@ -1,4 +1,4 @@
-package netty4z
+package netty4z.client
 
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.nio.NioEventLoopGroup
@@ -21,7 +21,7 @@ object EchoClient {
         .handler(new ChannelInitializer[SocketChannel]() {
           override def initChannel(ch: SocketChannel): Unit = {
             val p = ch.pipeline
-//            p.addLast(new LoggingHandler(LogLevel.INFO))
+            //            p.addLast(new LoggingHandler(LogLevel.INFO))
             p.addLast(new EchoClientHandler)
           }
         })

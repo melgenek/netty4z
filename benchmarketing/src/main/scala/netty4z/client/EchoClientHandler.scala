@@ -1,11 +1,7 @@
-package netty4z
+package netty4z.client
 
-import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInboundHandlerAdapter
-
-import scala.util.Random
+import io.netty.buffer.{ByteBuf, Unpooled}
+import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter}
 
 class EchoClientHandler() extends ChannelInboundHandlerAdapter {
 
