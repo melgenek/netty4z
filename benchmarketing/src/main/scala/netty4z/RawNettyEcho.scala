@@ -4,7 +4,7 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.channel.{ChannelFuture, ChannelHandlerContext, ChannelInboundHandlerAdapter, ChannelInitializer}
+import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter, ChannelInitializer}
 import io.netty.handler.logging.{LogLevel, LoggingHandler}
 
 object RawNettyEcho {
@@ -33,7 +33,7 @@ object RawNettyEcho {
   }
 
   final class EchoHandler extends ChannelInboundHandlerAdapter {
-    override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef) = {
+    override def channelRead(ctx: ChannelHandlerContext, msg: AnyRef): Unit = {
       ctx.writeAndFlush(msg)
     }
   }

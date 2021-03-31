@@ -7,12 +7,7 @@ object ZTcpEcho extends zio.App {
     ZTcp.server(8007)
       .use { s =>
         UIO(println("Started!")) *>
-          s.handle { ch =>
-            ch.write(ch.stream)
-              .catchAll {
-                e => UIO(println(s"OOPS $e"))
-              }
-          }
+          s.handle { ch => ch.writeBuffers(ch.buffers().retain()) }
       }
       .exitCode
   }

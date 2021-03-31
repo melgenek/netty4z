@@ -17,7 +17,6 @@ object EchoClient {
       val b = new Bootstrap()
       b.group(group)
         .channel(classOf[NioSocketChannel])
-        .option[java.lang.Boolean](ChannelOption.TCP_NODELAY, true)
         .handler(new ChannelInitializer[SocketChannel]() {
           override def initChannel(ch: SocketChannel): Unit = {
             val p = ch.pipeline

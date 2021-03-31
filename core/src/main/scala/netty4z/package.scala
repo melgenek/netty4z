@@ -1,7 +1,8 @@
 import io.netty.util.concurrent.Future
+import netty4z.utils.{BufferUtils, Logger}
 import zio.{Queue, Task, UIO, ZIO}
 
-package object netty4z {
+package object netty4z extends BufferUtils.Ops {
 
   val zRuntime: zio.Runtime[zio.ZEnv] = zio.Runtime.default
 

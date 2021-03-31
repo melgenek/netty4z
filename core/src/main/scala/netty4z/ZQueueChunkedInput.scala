@@ -3,8 +3,7 @@ package netty4z
 import io.netty.buffer.{ByteBuf, ByteBufAllocator}
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.stream.ChunkedInput
-import netty4z.ZioChannelHandler.ChannelEnd
-import zio.stream.Take
+import netty4z.ZChannelHandler.ChannelEnd
 import zio.{Queue, UIO, ZQueue}
 
 object ZQueueChunkedInput {
