@@ -4,7 +4,8 @@ import io.netty.buffer.{ByteBuf, ByteBufAllocator}
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.stream.ChunkedInput
 import netty4z.ZChannelHandler.ChannelEnd
-import zio.{Queue, UIO, ZQueue}
+import netty4z.utils.BufferUtils
+import zio.{Queue, UIO, ZIO, ZQueue}
 
 object ZQueueChunkedInput {
   def make(): UIO[(Queue[AnyRef], ZQueueChunkedInput)] = {
@@ -22,8 +23,10 @@ class ZQueueChunkedInput(q: Queue[AnyRef]) extends ChunkedInput[ByteBuf] {
     closed || zRuntime.unsafeRun(q.isShutdown)
 
   override def close(): Unit = {
+    zRuntime.unsafeRun {
+      q.takeAll.tap(buffers => ZIO.foreach(buffers)(BufferUtils.safeReleaseAny)) *> q.shutdown
+    }
     closed = true
-    zRuntime.unsafeRun(q.shutdown)
   }
 
   override def readChunk(ctx: ChannelHandlerContext): ByteBuf =
@@ -37,7 +40,7 @@ class ZQueueChunkedInput(q: Queue[AnyRef]) extends ChunkedInput[ByteBuf] {
           offset += b.readableBytes()
           b
         case ChannelEnd =>
-          closed = true
+          close()
           null
         case e: Throwable =>
           throw e

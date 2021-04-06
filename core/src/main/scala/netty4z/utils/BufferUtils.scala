@@ -16,6 +16,12 @@ object BufferUtils {
     Unpooled.wrappedBuffer(chunk.toArray)
   }
 
+  final def safeReleaseAny(anything: AnyRef): UIO[Unit] =
+    anything match {
+      case buf: ReferenceCounted => safeRelease(buf)
+      case _ => UIO.unit
+    }
+
   final def safeRelease(buf: ReferenceCounted): UIO[Unit] = UIO {
     if (buf.refCnt() > 0) {
       try {

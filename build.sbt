@@ -20,7 +20,9 @@ lazy val core = project
     libraryDependencies ++= Seq(
       "io.netty" % "netty-all" % "4.1.60.Final",
       "dev.zio" %% "zio" % "1.0.5",
-      "dev.zio" %% "zio-streams" % "1.0.5"
+      "dev.zio" %% "zio-streams" % "1.0.5",
+      "dev.zio" %% "zio-test" % "1.0.5" % Test,
+      "dev.zio" %% "zio-test-sbt" % "1.0.5" % Test
     )
   )
 
